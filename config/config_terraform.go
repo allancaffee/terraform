@@ -72,8 +72,7 @@ type Backend struct {
 	Hash uint64
 }
 
-// Hash returns a unique content hash for this backend's configuration
-// as a uint64 value.
+// rehash updates the Backend Hash value
 func (b *Backend) Rehash() uint64 {
 	// If we have no backend, the value is zero
 	if b == nil {
@@ -92,6 +91,7 @@ func (b *Backend) Rehash() uint64 {
 		panic(err)
 	}
 
+	b.Hash = code
 	return code
 }
 

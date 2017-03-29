@@ -3217,6 +3217,28 @@ func TestMetaBackend_planLegacy(t *testing.T) {
 	}
 }
 
+func TestMetaBackend_mergeHash(t *testing.T) {
+	m := testMetaBackend(t, nil)
+	opts := &BackendOpts{
+		ConfigPath: testFixturePath("init-backend-empty"),
+		ConfigExtra: map[string]interface{}{
+			"foo": "bar",
+		},
+	}
+
+	b, err := m.backendConfig(opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hashBefore := b.Hash
+	hashAfter := b.Rehash()
+
+	if hashBefore != hashAfter {
+		t.Fatal("merged config has incorrect hash")
+	}
+}
+
 func testMetaBackend(t *testing.T, args []string) *Meta {
 	var m Meta
 	m.Ui = new(cli.MockUi)

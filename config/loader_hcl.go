@@ -295,7 +295,7 @@ func loadTerraformBackendHcl(list *ast.ObjectList) (*Backend, error) {
 		Type:      typ,
 		RawConfig: rawConfig,
 	}
-	b.Hash = b.Rehash()
+	b.Rehash()
 
 	return b, nil
 }

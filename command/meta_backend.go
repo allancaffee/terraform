@@ -278,6 +278,9 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*config.Backend, error) {
 		return nil, multierror.Append(nil, errs...)
 	}
 
+	// update the hash now that we've merged the config
+	backend.Rehash()
+
 	// Return the configuration which may or may not be set
 	return backend, nil
 }
@@ -321,16 +324,6 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 	c, err := m.backendConfig(opts)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading backend config: %s", err)
-	}
-
-	// cHash defaults to zero unless c is set
-	var cHash uint64
-	if c != nil {
-		// We need to rehash to get the value since we may have merged the
-		// config with an extra ConfigFile. We don't do this when merging
-		// because we do want the ORIGINAL value on c so that we store
-		// that to not detect drift. This is covered in tests.
-		cHash = c.Rehash()
 	}
 
 	// Get the path to where we store a local cache of backend configuration
@@ -415,7 +408,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 	case c != nil && s.Remote.Empty() && !s.Backend.Empty():
 		// If our configuration is the same, then we're just initializing
 		// a previously configured remote backend.
-		if !s.Backend.Empty() && s.Backend.Hash == cHash {
+		if !s.Backend.Empty() && s.Backend.Hash == c.Hash {
 			return m.backend_C_r_S_unchanged(c, sMgr)
 		}
 
@@ -429,7 +422,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 
 		log.Printf(
 			"[WARN] command: backend config change! saved: %d, new: %d",
-			s.Backend.Hash, cHash)
+			s.Backend.Hash, c.Hash)
 		return m.backend_C_r_S_changed(c, sMgr, true)
 
 	// Configuring a backend for the first time while having legacy
@@ -451,7 +444,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, error) {
 	case c != nil && !s.Remote.Empty() && !s.Backend.Empty():
 		// If the hashes are the same, we have a legacy remote state with
 		// an unchanged stored backend state.
-		if s.Backend.Hash == cHash {
+		if s.Backend.Hash == c.Hash {
 			if !opts.Init {
 				initReason := fmt.Sprintf(
 					"Legacy remote state found with configured backend %q",
